@@ -1,0 +1,8 @@
+FROM docker.io/library/node:lts-alpine
+
+COPY ./snapdrop/server /home/node/app
+WORKDIR /home/node/app
+
+RUN npm install
+EXPOSE 3000
+ENTRYPOINT [ "node",  "index.js" ]

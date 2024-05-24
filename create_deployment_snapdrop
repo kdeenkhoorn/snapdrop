@@ -1,0 +1,88 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: snapdrop
+  name: snapdrop
+  namespace: snapdrop
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: snapdrop
+  template:
+    metadata:
+      labels:
+        app: snapdrop
+    spec:
+      containers:
+      - image: ghcr.io/kdeenkhoorn/snapdrop-nginx:latest
+        name: snapdrop
+        imagePullPolicy: Always
+        ports:
+        - name: snapdrop-port
+          containerPort: 80
+      - image: ghcr.io/kdeenkhoorn/snapdrop-node:latest
+        name: node
+        imagePullPolicy: Always
+        ports:
+        - name: node-port
+          containerPort: 3000
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: snapdrop-ingress
+  namespace: snapdrop
+  annotations:
+    spec.ingressClassName: public
+    cert-manager.io/cluster-issuer: int-kdedesign-nl
+  labels:
+    app: snapdrop
+spec:
+  tls:
+  - hosts:
+    - snapdrop.int.kdedesign.nl
+    secretName: snapdrop-tls-secret
+  rules:
+  - host: snapdrop.int.kdedesign.nl
+    http:
+      paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: snapdrop-service
+              port:
+                name: snapdrop-http
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: snapdrop
+  name: snapdrop-service
+  namespace: snapdrop
+spec:
+  ports:
+  - name: snapdrop-http
+    port: 80
+    targetPort: snapdrop-port
+  selector:
+    app: snapdrop
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: snapdrop
+  name: node-service
+  namespace: snapdrop
+spec:
+  ports:
+  - name: node-http
+    port: 3000
+    targetPort: node-port
+  selector:
+    app: snapdrop
